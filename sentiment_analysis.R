@@ -1,8 +1,8 @@
 library(data.table)
-library(digest)
-library(SnowballC)
 library(tm)
 library(syuzhet)
+library(ggplot2)
+
 
 ## Explore tweets
 
@@ -35,7 +35,59 @@ emotions2 <- cbind(words, emotions)
 
 head(emotions2)
 
-
 # score sentiment
 score <- sum(emotions2$positive) - sum(emotions2$negative)
+score_log <- log(sum(emotions2$positive) + 0.5) - log(sum(emotions2$negative) - 0.5)
 
+
+
+#################### Sentiment analysis using tidytext ####################
+library(tidytext)
+library(dplyr)
+
+tweets <- searchTwitter('hitrecord', n=2000)
+
+
+## strip retweets
+tweets <- (strip_retweets(tweets, strip_manual = TRUE, strip_mt = TRUE))
+tweets_tb <- as_tibble(tweets, validate=TRUE)
+
+
+## convert to dataframe
+tweets_df <- twListToDF(tweets)
+length(tweets_df)
+head(tweets_df)
+
+
+#tokenize text
+text_df <- data_frame(line = 314, text = text)
+tidy_text <- text_df %>%
+  unnest_tokens(word, text)
+
+#remove stop words 
+data(stop_words)
+
+clean_text <- tidy_text %>%
+  anti_join(stop_words)
+
+
+#remove link stuff
+links <- c("https", "http", "t.co", "bit.ly", "hitrecord")
+links_tb <- tibble( word = links )
+clean_text <- clean_text %>%
+  anti_join(links_tb)
+
+#get word count
+clean_text %>%
+  count(word, sort = TRUE) 
+
+
+#plot word count
+clean_text %>%
+  count(word, sort = TRUE) %>%
+  filter(n > 2) %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(word, n)) +
+  geom_col() +
+  xlab(NULL) +
+  coord_flip()
