@@ -3,6 +3,7 @@ library(tm)
 library(syuzhet)
 library(ggplot2)
 
+setwd("git/VeepsLearnsTwitteR")
 
 ## Explore tweets
 
@@ -50,17 +51,21 @@ tweets <- searchTwitter('hitrecord', n=2000)
 
 ## strip retweets
 tweets <- (strip_retweets(tweets, strip_manual = TRUE, strip_mt = TRUE))
-tweets_tb <- as_tibble(tweets, validate=TRUE)
 
 
 ## convert to dataframe
 tweets_df <- twListToDF(tweets)
-length(tweets_df)
-head(tweets_df)
+
+## write to csv for future
+write.csv(tweets_df, file = "hitrecord_tweets.csv")
+
+##strip tweets from @hitrecord and @hitrecordjoe
+tweets_df <- tweets_df[tweets_df$screenName != "hitRECord", ]
+tweets_df <- tweets_df[tweets_df$screenName != "hitRECordJoe", ]
 
 
 #tokenize text
-text_df <- data_frame(line = 314, text = text)
+text_df <- data_frame(line = 209, text = tweets_df$text)
 tidy_text <- text_df %>%
   unnest_tokens(word, text)
 
@@ -72,7 +77,7 @@ clean_text <- tidy_text %>%
 
 
 #remove link stuff
-links <- c("https", "http", "t.co", "bit.ly", "hitrecord")
+links <- c("https", "http", "t.co", "bit.ly", "hitrecord", "hitrecordjoe")
 links_tb <- tibble( word = links )
 clean_text <- clean_text %>%
   anti_join(links_tb)
@@ -85,7 +90,7 @@ clean_text %>%
 #plot word count
 clean_text %>%
   count(word, sort = TRUE) %>%
-  filter(n > 2) %>%
+  filter(n > 5) %>%
   mutate(word = reorder(word, n)) %>%
   ggplot(aes(word, n)) +
   geom_col() +
